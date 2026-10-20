@@ -164,6 +164,22 @@ class BridgeHTTPTests(unittest.TestCase):
         self.assertEqual(status, 502)
         self.assertEqual(body["error"], "model_unavailable")
 
+    def test_model_timeout_returns_502(self):
+        with patch.object(
+            bridge_server, "request_decision", side_effect=TimeoutError("simulated timeout")
+        ):
+            status, body = self.send_request(
+                "POST",
+                "/api/decision",
+                json.dumps({
+                    "schema_version": 1,
+                    "observation": {"npc": {}, "player": {}, "environment": {}},
+                }).encode("utf-8"),
+            )
+        self.assertEqual(status, 502)
+        self.assertEqual(body["error"], "model_unavailable")
+        self.assertEqual(body["detail"], "Could not obtain a model response")
+
     def test_invalid_model_response_returns_502(self):
         with patch.object(
             bridge_server, "request_decision", side_effect=ValueError("model content is not JSON")

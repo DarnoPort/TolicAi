@@ -54,6 +54,26 @@ python -m unittest discover -s tests -v
 
 Запиши для обеих попыток: время ответа, итоговую строку либо полную ошибку. Если первая попытка не завершится в пределах 190 секунд, не повторяй её много раз подряд — пришли время и последние сообщения Python-моста.
 
+## Результат проверки остановки и восстановления моста
+
+2026-10-21 автор остановил Python-мост и выполнил `tolic_ai_test_decision` в консоли сервера:
+
+```text
+[Tolic AI] Sending a diagnostic observation to the neural model...
+[Tolic AI] Neural decision test failed: HTTP request failed: Couldn't connect to server
+```
+
+После повторного запуска Python-моста автор выполнил обе команды:
+
+```text
+[Tolic AI] Checking local AI bridge...
+[Tolic AI] Bridge replied. Ollama reachable: true; configured model available: true; model: qwen2.5:3b
+[Tolic AI] Sending a diagnostic observation to the neural model...
+[Tolic AI] Model: qwen2.5:3b; intent: move_to_safety; risk: low; confidence: 0.9; summary: Move to safety due to low risk environment and no recent danger.
+```
+
+Мост восстановился без перезапуска игрового сервера. Ошибка подключения была показана явно, а повторная диагностика снова получила ответ настоящей модели. Это закрывает ручную проверку обычного отказа и восстановления моста.
+
 ## Ручная проверка недоступного Python-моста
 
 1. Убедитесь, что выделенный сервер Garry's Mod запущен и подключение работает.
