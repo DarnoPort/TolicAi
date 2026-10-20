@@ -1,8 +1,15 @@
+import json
 import sys
+import threading
 import unittest
+from http.server import ThreadingHTTPServer
 from pathlib import Path
+from unittest.mock import patch
+from urllib.error import HTTPError, URLError
+from urllib.request import Request, urlopen
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "ai_service"))
+import server as bridge_server  # noqa: E402
 from server import DECISION_SCHEMA, validate_decision, validate_observation  # noqa: E402
 
 
@@ -84,6 +91,107 @@ class ProtocolValidationTests(unittest.TestCase):
                     "summary": "A boolean is not a numeric confidence.",
                 }
             )
+
+
+class BridgeHTTPTests(unittest.TestCase):
+    """Exercise HTTP status and error handling without contacting a real Ollama model."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.httpd = ThreadingHTTPServer(("127.0.0.1", 0), bridge_server.BridgeHandler)
+        cls.httpd.daemon_threads = True
+        cls.thread = threading.Thread(target=cls.httpd.serve_forever, daemon=True)
+        cls.thread.start()
+        cls.base_url = f"http://127.0.0.1:{cls.httpd.server_address[1]}"
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.httpd.shutdown()
+        cls.thread.join(timeout=2)
+        cls.httpd.server_close()
+
+    def send_request(self, method, path, body=None):
+        request = Request(self.base_url + path, data=body, method=method)
+        try:
+            with urlopen(request, timeout=3) as response:
+                status = response.status
+                response_body = response.read()
+        except HTTPError as error:
+            status = error.code
+            response_body = error.read()
+        return status, json.loads(response_body.decode("utf-8"))
+
+    def test_post_decision_returns_model_result(self):
+        observation = {"npc": {}, "player": {}, "environment": {}}
+        payload = {"schema_version": 1, "observation": observation}
+        expected = {
+            "schema_version": 1,
+            "model": "qwen2.5:3b",
+            "decision": {
+                "intent": "assist_player",
+                "risk_level": "moderate",
+                "confidence": 0.75,
+                "summary": "Assist player",
+            },
+        }
+        with patch.object(bridge_server, "request_decision", return_value=expected) as mocked:
+            status, body = self.send_request(
+                "POST", "/api/decision", json.dumps(payload).encode("utf-8")
+            )
+        self.assertEqual(status, 200)
+        self.assertEqual(body, expected)
+        mocked.assert_called_once_with(observation)
+
+    def test_invalid_json_returns_400_without_calling_model(self):
+        with patch.object(bridge_server, "request_decision") as mocked:
+            status, body = self.send_request("POST", "/api/decision", b"{not-json")
+        self.assertEqual(status, 400)
+        self.assertEqual(body["error"], "invalid_request")
+        mocked.assert_not_called()
+
+    def test_model_connection_failure_returns_502(self):
+        with patch.object(
+            bridge_server, "request_decision", side_effect=URLError("simulated offline model")
+        ):
+            status, body = self.send_request(
+                "POST",
+                "/api/decision",
+                json.dumps({
+                    "schema_version": 1,
+                    "observation": {"npc": {}, "player": {}, "environment": {}},
+                }).encode("utf-8"),
+            )
+        self.assertEqual(status, 502)
+        self.assertEqual(body["error"], "model_unavailable")
+
+    def test_invalid_model_response_returns_502(self):
+        with patch.object(
+            bridge_server, "request_decision", side_effect=ValueError("model content is not JSON")
+        ):
+            status, body = self.send_request(
+                "POST",
+                "/api/decision",
+                json.dumps({
+                    "schema_version": 1,
+                    "observation": {"npc": {}, "player": {}, "environment": {}},
+                }).encode("utf-8"),
+            )
+        self.assertEqual(status, 502)
+        self.assertEqual(body["error"], "invalid_model_response")
+        self.assertEqual(body["detail"], "model content is not JSON")
+
+    def test_health_remains_available_when_ollama_is_offline(self):
+        with patch.object(bridge_server, "_read_json_url", side_effect=URLError("offline")):
+            status, body = self.send_request("GET", "/health")
+        self.assertEqual(status, 200)
+        self.assertTrue(body["ok"])
+        self.assertFalse(body["ollama_reachable"])
+        self.assertFalse(body["model_available"])
+
+    def test_unknown_post_path_returns_404(self):
+        status, body = self.send_request("POST", "/unknown", b"{}")
+        self.assertEqual(status, 404)
+        self.assertEqual(body["error"], "not_found")
 
 
 if __name__ == "__main__":
