@@ -47,11 +47,10 @@ class ProtocolValidationTests(unittest.TestCase):
                 }
             )
 
-    def test_confidence_schema_uses_supported_values(self):
-        self.assertEqual(
-            DECISION_SCHEMA["properties"]["confidence"]["enum"],
-            [0, 0.25, 0.5, 0.75, 1],
-        )
+    def test_confidence_schema_enforces_range(self):
+        confidence_schema = DECISION_SCHEMA["properties"]["confidence"]
+        self.assertEqual(confidence_schema["minimum"], 0)
+        self.assertEqual(confidence_schema["maximum"], 1)
 
     def test_rejects_confidence_out_of_range(self):
         with self.assertRaisesRegex(ValueError, r"got 1\.5"):
@@ -61,6 +60,17 @@ class ProtocolValidationTests(unittest.TestCase):
                     "risk_level": "none",
                     "confidence": 1.5,
                     "summary": "Out of range.",
+                }
+            )
+
+    def test_rejects_negative_confidence(self):
+        with self.assertRaisesRegex(ValueError, r"got -0\.1"):
+            validate_decision(
+                {
+                    "intent": "observe",
+                    "risk_level": "none",
+                    "confidence": -0.1,
+                    "summary": "Below the allowed range.",
                 }
             )
 

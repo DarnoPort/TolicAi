@@ -34,7 +34,7 @@ DECISION_SCHEMA: dict[str, Any] = {
     "properties": {
         "intent": {"type": "string", "enum": sorted(ALLOWED_INTENTS)},
         "risk_level": {"type": "string", "enum": sorted(ALLOWED_RISK_LEVELS)},
-        "confidence": {"type": "number", "enum": [0, 0.25, 0.5, 0.75, 1]},
+        "confidence": {"type": "number", "minimum": 0, "maximum": 1},
         "summary": {"type": "string"},
     },
     "required": ["intent", "risk_level", "confidence", "summary"],
@@ -126,9 +126,8 @@ def request_decision(observation: dict[str, Any]) -> dict[str, Any]:
         "but do not choose the same intent regardless of context. "
         "Do not imitate risky player actions without considering the NPC's own state. "
         "The summary must be a brief decision label, not a chain of reasoning. "
-        "The confidence field is a number from 0 to 1 inclusive. "
-        "Use only one of these values: 0, 0.25, 0.5, 0.75, or 1. "
-        "Never express confidence as a percentage, and never use a value above 1. "
+        "The confidence field is any number from 0 to 1 inclusive. "
+        "Never express confidence as a percentage or use a value outside that range. "
         "Return only a JSON object matching this exact schema: "
         f"{json.dumps(DECISION_SCHEMA, separators=(',', ':'))}"
     )
