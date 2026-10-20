@@ -36,7 +36,7 @@ python -m unittest discover -s tests -v
 2. Остановите старый Python-мост сочетанием `Ctrl+C` в его окне.
 3. В новом окне CMD выполните:
    ```bat
-   cd /d D:\\TolicAi
+   cd /d D:\TolicAi
    set TOLIC_MODEL_TIMEOUT=180
    py -3 ai_service\\server.py
    ```
