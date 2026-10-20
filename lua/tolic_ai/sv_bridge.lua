@@ -5,7 +5,9 @@ TolicAI.Bridge = TolicAI.Bridge or {}
 
 local Bridge = TolicAI.Bridge
 local function baseURL()
-    return string.Trim(TolicAI.Config.BridgeURL or "http://127.0.0.1:8765", "/")
+    local url = TolicAI.Config.BridgeURL or "http://127.0.0.1:8765"
+    local trimmed = string.gsub(url, "/+$", "")
+    return trimmed
 end
 
 local function report(ply, message)
