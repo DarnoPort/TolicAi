@@ -3,7 +3,7 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "ai_service"))
-from server import validate_decision, validate_observation  # noqa: E402
+from server import DECISION_SCHEMA, validate_decision, validate_observation  # noqa: E402
 
 
 class ProtocolValidationTests(unittest.TestCase):
@@ -47,8 +47,14 @@ class ProtocolValidationTests(unittest.TestCase):
                 }
             )
 
+    def test_confidence_schema_uses_supported_values(self):
+        self.assertEqual(
+            DECISION_SCHEMA["properties"]["confidence"]["enum"],
+            [0, 0.25, 0.5, 0.75, 1],
+        )
+
     def test_rejects_confidence_out_of_range(self):
-        with self.assertRaises(ValueError):
+        with self.assertRaisesRegex(ValueError, r"got 1\\.5"):
             validate_decision(
                 {
                     "intent": "observe",
