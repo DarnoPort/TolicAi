@@ -54,7 +54,7 @@ class ProtocolValidationTests(unittest.TestCase):
         )
 
     def test_rejects_confidence_out_of_range(self):
-        with self.assertRaisesRegex(ValueError, r"got 1\\.5"):
+        with self.assertRaisesRegex(ValueError, r"got 1\.5"):
             validate_decision(
                 {
                     "intent": "observe",
