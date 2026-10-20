@@ -7,6 +7,7 @@ TolicAI = TolicAI or {}
 function ENT:Initialize()
     local active = TolicAI.ActiveNPC
     if IsValid(active) and active ~= self then
+        MsgN("[Tolic AI] Duplicate spawn rejected; active NPC entity #" .. active:EntIndex() .. " remains.")
         self:Remove()
         return
     end
@@ -36,5 +37,6 @@ end
 function ENT:OnRemove()
     if TolicAI and TolicAI.ActiveNPC == self then
         TolicAI.ActiveNPC = nil
+        MsgN("[Tolic AI] Active NPC removed; registry cleared.")
     end
 end
