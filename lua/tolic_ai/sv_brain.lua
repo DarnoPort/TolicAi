@@ -397,7 +397,7 @@ local function startRequest(npc, state)
         local fresh, reason = snapshotStillCurrent(npc, request)
         if not fresh then
             state.last_result = "stale_response_discarded"
-            state.next_request_at = CurTime() + (TolicAI.Config.FailureRetryInterval or 10)
+            state.next_request_at = CurTime() + (TolicAI.Config.StaleDecisionRetryInterval or 1)
             report("Discarded stale decision: " .. tostring(reason))
             return
         end
@@ -438,7 +438,7 @@ function Brain.Tick(npc)
         local fresh, reason = snapshotStillCurrent(npc, pending.request)
         if not fresh then
             state.last_result = "stale_before_execution"
-            state.next_request_at = CurTime() + (TolicAI.Config.FailureRetryInterval or 10)
+            state.next_request_at = CurTime() + (TolicAI.Config.StaleDecisionRetryInterval or 1)
             report("Decision expired before execution: " .. tostring(reason))
             return
         end
