@@ -121,6 +121,23 @@ local function nearestPlayer(origin)
     return nearest, nearestDistance
 end
 
+local function nearestLivingPlayer(origin)
+    local nearest
+    local nearestDistance
+
+    for _, candidate in ipairs(player.GetAll()) do
+        if IsValid(candidate) and candidate:Alive() then
+            local distance = origin:Distance(candidate:GetPos())
+            if not nearestDistance or distance < nearestDistance then
+                nearest = candidate
+                nearestDistance = distance
+            end
+        end
+    end
+
+    return nearest, nearestDistance
+end
+
 local function stateFor(npc)
     npc.TolicAIBrainState = npc.TolicAIBrainState or {
         request_id = 0,
@@ -270,8 +287,8 @@ local function moveToPosition(npc, targetPlayer, destination)
 end
 
 local function executePlayerApproach(npc, intent)
-    local targetPlayer = nearestPlayer(npc:GetPos())
-    if not IsValid(targetPlayer) or not targetPlayer:Alive() then
+    local targetPlayer = nearestLivingPlayer(npc:GetPos())
+    if not IsValid(targetPlayer) then
         return "no_living_player_to_approach"
     end
 
