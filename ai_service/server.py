@@ -24,7 +24,6 @@ ALLOWED_INTENTS = {
     "observe",
     "stay_near_player",
     "follow_player",
-    "move_to_safety",
     "assist_player",
 }
 ALLOWED_RISK_LEVELS = {"none", "low", "moderate", "high", "critical"}
@@ -121,9 +120,21 @@ def request_decision(observation: dict[str, Any]) -> dict[str, Any]:
     system_message = (
         "You are the decision module for a nonverbal game NPC. "
         "Choose exactly one permitted high-level intent from the schema. "
-        "Use only facts in the structured observation. Do not invent unseen facts. "
-        "Prefer preserving the NPC's current life when the situation is dangerous, "
-        "but do not choose the same intent regardless of context. "
+        "Use only facts in the structured observation. Never invent unseen threats, cover, exits, "
+        "higher ground, destinations, or safe locations. "
+        "In this prototype there is no verified action for moving to a safety destination; do not "
+        "pretend such an action is available. "
+        "When a living player is present and the observation contains no concrete evidence of immediate "
+        "danger, normally choose stay_near_player. This is the default calm/idle behavior. "
+        "If distance_to_player is clearly large (over 500 game units), prefer follow_player; otherwise "
+        "prefer stay_near_player for ordinary proximity. "
+        "Choose assist_player only when observed facts clearly indicate that the player needs help; "
+        "do not infer a need for help from the player's mere presence. "
+        "Choose observe when no living player is available or the observation is too incomplete to support "
+        "a movement choice. "
+        "A nearby NPC/NextBot or its class name alone is not evidence that it is hostile. "
+        "Use none/low risk for calm or ambiguous observations. Use high/critical only when the observation "
+        "contains concrete evidence of serious or immediate danger; do not invent danger to sound cautious. "
         "Do not imitate risky player actions without considering the NPC's own state. "
         "The summary must be a brief decision label, not a chain of reasoning. "
         "The confidence field is any number from 0 to 1 inclusive. "
