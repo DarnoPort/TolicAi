@@ -12,8 +12,11 @@ TolicAI.Config.MaxHealth = 100
 TolicAI.Config.RequestTimeout = 190
 
 -- Stage 3: asynchronous decision loop and bounded movement execution.
-TolicAI.Config.DecisionInterval = 8
+-- Keep routine decisions responsive while avoiding a model request every frame.
+TolicAI.Config.DecisionInterval = 2
 TolicAI.Config.FailureRetryInterval = 10
+-- A stale answer is not a bridge failure; quickly re-observe the changed world.
+TolicAI.Config.StaleDecisionRetryInterval = 1
 TolicAI.Config.MaxDecisionAge = 35
 TolicAI.Config.MaxNPCDrift = 200
 TolicAI.Config.MaxPlayerDrift = 400
