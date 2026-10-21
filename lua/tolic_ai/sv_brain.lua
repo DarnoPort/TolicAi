@@ -9,7 +9,6 @@ local ALLOWED_INTENTS = {
     observe = true,
     stay_near_player = true,
     follow_player = true,
-    move_to_safety = true,
     assist_player = true
 }
 
@@ -348,12 +347,6 @@ function Brain.Execute(npc, decision)
 
     if decision.intent == "observe" then
         return "observed_without_movement"
-    end
-
-    if decision.intent == "move_to_safety" then
-        -- Stage 3 does not yet compute or validate safe destinations. Standing still
-        -- is preferable to inventing a point and treating it as safe.
-        return "not_executed_no_verified_safe_destination"
     end
 
     if decision.intent == "stay_near_player"
