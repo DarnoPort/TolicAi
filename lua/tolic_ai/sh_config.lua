@@ -17,8 +17,9 @@ TolicAI.Config.DecisionInterval = 2
 TolicAI.Config.FailureRetryInterval = 10
 -- A stale answer is not a bridge failure; quickly re-observe the changed world.
 TolicAI.Config.StaleDecisionRetryInterval = 1
--- Briefly pause movement after a hit; risk floor remains active throughout the damage window.
-TolicAI.Config.DamageReactionHold = 3
+-- Suppress movement for the full recent-damage window, not just the first few seconds.
+-- Keep aligned with RECENT_DAMAGE_WINDOW in sv_observation.lua (currently 10 seconds).
+TolicAI.Config.DamageReactionHold = 10
 TolicAI.Config.MaxDecisionAge = 35
 TolicAI.Config.MaxNPCDrift = 200
 TolicAI.Config.MaxPlayerDrift = 400
