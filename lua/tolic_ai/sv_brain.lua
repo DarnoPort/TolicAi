@@ -234,9 +234,11 @@ local function moveToPosition(npc, targetPlayer, destination)
     local path = Path("Follow")
     path:SetMinLookAheadDistance(100)
     path:SetGoalTolerance(goalTolerance)
-    path:Compute(npc, destination)
+    local computed = path:Compute(npc, destination)
 
-    if not path:IsValid() then
+    -- Compute can leave a valid partial path when the goal itself was not reached.
+    -- Do not treat that as a successful route for this bounded action.
+    if not computed or not path:IsValid() then
         return "blocked_no_path"
     end
 
@@ -338,6 +340,10 @@ end
 function Brain.Execute(npc, decision)
     if not IsValid(npc) or TolicAI.ActiveNPC ~= npc then
         return "active_npc_changed"
+    end
+
+    if not istable(decision) or not ALLOWED_INTENTS[decision.intent] then
+        return "blocked_invalid_decision"
     end
 
     if decision.intent == "observe" then
