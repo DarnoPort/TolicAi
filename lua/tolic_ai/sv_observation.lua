@@ -6,6 +6,7 @@ TolicAI.Observation = TolicAI.Observation or {}
 local Observation = TolicAI.Observation
 local SCAN_RADIUS = 1000
 local MAX_NEARBY_ACTORS = 8
+local RECENT_DAMAGE_WINDOW = 10
 
 local function roundTenth(value)
     if value >= 0 then
@@ -40,6 +41,21 @@ local function addHealthFacts(target, entity)
     end
 end
 
+hook.Add("EntityTakeDamage", "TolicAI.Observation.TrackActiveNPCDamage", function(target, damageInfo)
+    local activeNPC = TolicAI and TolicAI.ActiveNPC
+    if not IsValid(activeNPC) or target ~= activeNPC then return end
+
+    local amount = damageInfo:GetDamage()
+    if not isnumber(amount) or amount <= 0 then return end
+
+    Observation.LastDamage = {
+        entity = activeNPC,
+        time = CurTime(),
+        amount = roundTenth(amount),
+        damage_type = damageInfo:GetDamageType()
+    }
+end)
+
 function Observation.Collect(npc)
     if not IsValid(npc) then
         return nil, "The active NPC is not valid."
@@ -51,6 +67,17 @@ function Observation.Collect(npc)
         position = positionToTable(position)
     }
     addHealthFacts(npcFacts, npc)
+
+    -- Only emit damage fields when this particular NPC's damage was observed.
+    -- Missing fields mean "not observed", not "the NPC definitely took no damage".
+    local lastDamage = Observation.LastDamage
+    if lastDamage and lastDamage.entity == npc then
+        local age = math.max(0, CurTime() - lastDamage.time)
+        npcFacts.recent_damage = age <= RECENT_DAMAGE_WINDOW
+        npcFacts.seconds_since_damage = roundTenth(age)
+        npcFacts.last_damage_amount = lastDamage.amount
+        npcFacts.last_damage_type = lastDamage.damage_type
+    end
 
     local observation = {
         npc = npcFacts,
