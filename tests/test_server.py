@@ -54,6 +54,18 @@ class ProtocolValidationTests(unittest.TestCase):
                 }
             )
 
+    def test_move_to_safety_is_not_supported_until_executor_exists(self):
+        self.assertNotIn("move_to_safety", DECISION_SCHEMA["properties"]["intent"]["enum"])
+        with self.assertRaisesRegex(ValueError, "unsupported intent"):
+            validate_decision(
+                {
+                    "intent": "move_to_safety",
+                    "risk_level": "high",
+                    "confidence": 0.85,
+                    "summary": "Move to higher ground for safety",
+                }
+            )
+
     def test_confidence_schema_enforces_range(self):
         confidence_schema = DECISION_SCHEMA["properties"]["confidence"]
         self.assertEqual(confidence_schema["minimum"], 0)

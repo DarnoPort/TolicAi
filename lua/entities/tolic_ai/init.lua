@@ -22,15 +22,21 @@ function ENT:Initialize()
     self:SetCollisionGroup(COLLISION_GROUP_NPC)
     self:SetNW2Bool("TolicAI.BrainConnected", false)
 
-    MsgN("[Tolic AI] Prototype NPC spawned. Autonomous behaviour is not implemented yet.")
+    MsgN("[Tolic AI] Prototype NPC spawned. Stage 3 decision loop enabled; autonomous decisions remain experimental until verified in-game.")
 end
 
--- Intentionally passive in the bootstrap version. Do not substitute a hard-coded
--- decision tree for the neural model; autonomous behaviour will be connected only
--- after observation, validation and action execution are implemented and tested.
+-- The neural model chooses a high-level intent. Brain.Tick validates the response
+-- and runs only a small, bounded set of movement actions; it never executes model code.
 function ENT:RunBehaviour()
     while IsValid(self) do
-        coroutine.wait(1)
+        if TolicAI and TolicAI.Brain then
+            TolicAI.Brain.Tick(self)
+        elseif not self.TolicAIBrainMissingLogged then
+            self.TolicAIBrainMissingLogged = true
+            MsgN("[Tolic AI] Brain module is missing; NPC remains passive.")
+        end
+
+        coroutine.wait(0.25)
     end
 end
 

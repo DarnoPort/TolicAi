@@ -24,7 +24,6 @@ ALLOWED_INTENTS = {
     "observe",
     "stay_near_player",
     "follow_player",
-    "move_to_safety",
     "assist_player",
 }
 ALLOWED_RISK_LEVELS = {"none", "low", "moderate", "high", "critical"}
@@ -121,9 +120,25 @@ def request_decision(observation: dict[str, Any]) -> dict[str, Any]:
     system_message = (
         "You are the decision module for a nonverbal game NPC. "
         "Choose exactly one permitted high-level intent from the schema. "
-        "Use only facts in the structured observation. Do not invent unseen facts. "
-        "Prefer preserving the NPC's current life when the situation is dangerous, "
-        "but do not choose the same intent regardless of context. "
+        "Use only facts in the structured observation. Never invent unseen threats, cover, exits, "
+        "higher ground, destinations, or safe locations. "
+        "In this prototype there is no verified action for moving to a safety destination; do not "
+        "pretend such an action is available. "
+        "When a living player is present and there is no concrete evidence of immediate danger, normally "
+        "choose stay_near_player; when distance_to_player is over 500 game units, prefer follow_player. "
+        "Use assist_player only when the player's own observation facts support a real need for help, such "
+        "as low player.health_fraction. Do not infer injury from proximity or the player's mere presence, "
+        "and never claim the player is injured without supporting facts. "
+        "Important: npc.health_fraction and npc.recent_damage describe YOUR NPC body, not the player. "
+        "If npc.recent_damage is true, this NPC took damage within the last 10 seconds. Treat that as "
+        "evidence of possible danger to yourself: do not choose assist_player merely because the player is "
+        "nearby. Since this prototype has no verified retreat action yet, choose observe after recent damage "
+        "rather than approaching the player; set risk to moderate, or high if npc.health_fraction is at or "
+        "below 0.5. If there is no recent damage and health is normal, use none/low risk unless other "
+        "observed facts justify a higher risk. "
+        "Choose observe when no living player is available or the observation is too incomplete to support "
+        "a movement choice. A nearby NPC/NextBot or its class name alone is not evidence that it is hostile. "
+        "Use high/critical only when concrete facts justify serious or immediate danger; do not invent danger. "
         "Do not imitate risky player actions without considering the NPC's own state. "
         "The summary must be a brief decision label, not a chain of reasoning. "
         "The confidence field is any number from 0 to 1 inclusive. "
