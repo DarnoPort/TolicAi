@@ -7,6 +7,7 @@ end
 include("tolic_ai/sh_config.lua")
 
 if SERVER then
+    include("tolic_ai/sv_observation.lua")
     include("tolic_ai/sv_bridge.lua")
 end
 
