@@ -108,10 +108,10 @@ NextBot tickrate changed from 0 (0.000ms) to 7 (0.105ms)
 
 Повторное создание после ручного удаления уже подтверждено автором 2026-10-21. Следующие отдельные проверки:
 
-**A. Смерть NPC.** Создай одного Толика, затем в консоли выделенного сервера выполни:
+**A. Смерть NPC.** Создай одного Толика, затем в консоли выделенного сервера выполни команду ниже. Важно: в строке намеренно нет точек с запятой — консоль Source может разобрать `;` как разделитель команд до того, как строка попадёт в Lua.
 
 ```text
-lua_run local e = ents.FindByClass("tolic_ai")[1]; if IsValid(e) then e:TakeDamage(200, game.GetWorld(), game.GetWorld()) else print("[Tolic AI] No active NPC found.") end
+lua_run local e = ents.FindByClass("tolic_ai")[1] if IsValid(e) then e:TakeDamage(200, game.GetWorld(), game.GetWorld()) else print("[Tolic AI] No active NPC found.") end
 ```
 
 Это тестовое внутриигровое нанесение урона сущности, без необходимости менять Lua-файлы. Ожидается стандартная обработка смерти NextBot; если активная сущность удалится, должна появиться строка `Active NPC removed; registry cleared.`. После этого попробуй создать Толика снова и запиши результат. Если команда выдаст ошибку либо NPC останется активным, скопируй вывод целиком.
