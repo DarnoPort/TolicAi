@@ -82,8 +82,9 @@ python ai_service/server.py
 - `observe`
 - `stay_near_player`
 - `follow_player`
-- `move_to_safety`
 - `assist_player`
+
+`move_to_safety` намеренно не входит в список допустимых намерений текущей реализации: модель не должна выбирать действие, для которого ещё нет проверенного исполнителя и источника данных о безопасной точке.
 
 Допустимые уровни риска: `none`, `low`, `moderate`, `high`, `critical`.
 
