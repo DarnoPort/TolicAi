@@ -41,9 +41,9 @@ local function addHealthFacts(target, entity)
     end
 end
 
-hook.Add("EntityTakeDamage", "TolicAI.Observation.TrackActiveNPCDamage", function(target, damageInfo)
+hook.Add("PostEntityTakeDamage", "TolicAI.Observation.TrackActiveNPCDamage", function(target, damageInfo, wasDamageTaken)
     local activeNPC = TolicAI and TolicAI.ActiveNPC
-    if not IsValid(activeNPC) or target ~= activeNPC then return end
+    if not IsValid(activeNPC) or target ~= activeNPC or not wasDamageTaken then return end
 
     local amount = damageInfo:GetDamage()
     if not isnumber(amount) or amount <= 0 then return end
