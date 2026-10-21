@@ -166,6 +166,58 @@ local function reportFailure(npc, state, message)
     report("Brain request failed: " .. string.sub(tostring(message), 1, 240))
 end
 
+local RISK_RANK = {
+    none = 0,
+    low = 1,
+    moderate = 2,
+    high = 3,
+    critical = 4
+}
+
+-- The model still chooses the action, but recent damage imposes a narrow safety floor:
+-- the model cannot dismiss a confirmed hit as risk=none or approach while the hit is fresh.
+local function applyDamageSafetyGuard(decision, observation, elapsedSinceSnapshot)
+    local npcFacts = observation and observation.npc or {}
+    if npcFacts.recent_damage ~= true then
+        return nil
+    end
+
+    local originalIntent = decision.intent
+    local originalRisk = decision.risk_level
+    local healthFraction = npcFacts.health_fraction
+    local riskFloor = "moderate"
+
+    if isnumber(healthFraction) and healthFraction <= 0.5 then
+        riskFloor = "high"
+    end
+
+    if (RISK_RANK[decision.risk_level] or 0) < RISK_RANK[riskFloor] then
+        decision.risk_level = riskFloor
+    end
+
+    local ageAtObservation = npcFacts.seconds_since_damage
+    local ageAtExecution = isnumber(ageAtObservation)
+        and ageAtObservation + math.max(0, elapsedSinceSnapshot or 0)
+        or 0
+    local reactionHold = (TolicAI.Config and TolicAI.Config.DamageReactionHold) or 3
+    local criticallyInjured = isnumber(healthFraction) and healthFraction <= 0.5
+    local pauseMovement = ageAtExecution <= reactionHold or criticallyInjured
+
+    if pauseMovement and decision.intent ~= "observe" then
+        decision.intent = "observe"
+        decision.summary = "Recent damage detected; pause movement and reassess danger."
+    end
+
+    return {
+        original_intent = originalIntent,
+        original_risk = originalRisk,
+        final_intent = decision.intent,
+        final_risk = decision.risk_level,
+        age_since_damage = ageAtExecution,
+        pause_movement = pauseMovement
+    }
+end
+
 local function snapshotStillCurrent(npc, request)
     if not IsValid(npc) or TolicAI.ActiveNPC ~= npc then
         return false, "active_npc_changed"
@@ -400,6 +452,20 @@ local function startRequest(npc, state)
             state.next_request_at = CurTime() + (TolicAI.Config.StaleDecisionRetryInterval or 1)
             report("Discarded stale decision: " .. tostring(reason))
             return
+        end
+
+        local damageGuard = applyDamageSafetyGuard(
+            decision,
+            request.observation,
+            CurTime() - request.created_at
+        )
+        if damageGuard then
+            report("Damage safety guard: damage_age=" ..
+                string.format("%.1f", damageGuard.age_since_damage) ..
+                "s model_intent=" .. damageGuard.original_intent ..
+                " model_risk=" .. damageGuard.original_risk ..
+                " final_intent=" .. damageGuard.final_intent ..
+                " final_risk=" .. damageGuard.final_risk)
         end
 
         state.pending_decision = {
