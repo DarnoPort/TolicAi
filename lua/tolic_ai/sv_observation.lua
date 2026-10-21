@@ -167,6 +167,36 @@ local function report(playerEntity, message)
     end
 end
 
+local function printObservationJSON(encoded)
+    -- Print grouped lines instead of one large console message, which can be truncated.
+    local chunks = {}
+    local currentChunk = ""
+    local chunkLimit = 1000
+
+    for line in string.gmatch(encoded, "[^\n]+") do
+        local nextLength = #currentChunk + #line + 1
+        if #currentChunk > 0 and nextLength > chunkLimit then
+            chunks[#chunks + 1] = currentChunk
+            currentChunk = ""
+        end
+
+        if #currentChunk > 0 then
+            currentChunk = currentChunk .. "\n" .. line
+        else
+            currentChunk = line
+        end
+    end
+
+    if #currentChunk > 0 then
+        chunks[#chunks + 1] = currentChunk
+    end
+
+    MsgN("[Tolic AI] Observation snapshot JSON follows in " .. #chunks .. " parts.")
+    for index, chunk in ipairs(chunks) do
+        MsgN("[Tolic AI] JSON part " .. index .. "/" .. #chunks .. ":\n" .. chunk)
+    end
+end
+
 concommand.Add("tolic_ai_observe", function(playerEntity)
     if not mayRun(playerEntity) then
         report(playerEntity, "Only an administrator can run this diagnostic.")
@@ -195,6 +225,17 @@ concommand.Add("tolic_ai_observe", function(playerEntity)
         return
     end
 
-    MsgN("[Tolic AI] Observation snapshot JSON:\n" .. encoded)
-    report(playerEntity, "Observation snapshot collected; full JSON is in the dedicated server console. NPC control remains disabled.")
+    local environment = observation.environment
+    MsgN(
+        "[Tolic AI] Observation summary: " ..
+        "map=" .. tostring(environment.map) ..
+        " nearby_actor_count=" .. tostring(environment.nearby_actor_count) ..
+        " nearby_actor_limit=" .. tostring(environment.nearby_actor_limit) ..
+        " nearby_actors_truncated=" .. tostring(environment.nearby_actors_truncated) ..
+        " navmesh_loaded=" .. tostring(environment.navmesh_loaded) ..
+        " navmesh_area_count=" .. tostring(environment.navmesh_area_count)
+    )
+
+    printObservationJSON(encoded)
+    report(playerEntity, "Observation snapshot collected; summary and chunked JSON are in the dedicated server console. NPC control remains disabled.")
 end)
